@@ -1,0 +1,121 @@
+<html>
+<head>
+	<link href='http://fonts.googleapis.com/css?family=Roboto:300,300italic,400,400italic,700,700italic|Roboto+Condensed|Roboto+Slab:400,700,300' rel='stylesheet' type='text/css' />
+	<style>
+	body {
+		font-family: 'Roboto', sans-serif;
+		font-size: 14pt;
+		color: black;
+		background:url('background_norwich.jpg') black;
+	}
+	h1, h2 {
+		font-family: 'Roboto Slab', serif;
+		font-weight: 300;
+	}
+	h3 {
+		font-family: 'Roboto Condensed', sans-serif;
+	}
+	#container{
+		position: absolute;
+		top: 50%;
+		margin-top: -300px;/* half of #content height*/
+		left: 0;
+		width: 100%;
+	}
+	#content {
+		width: 760px;
+		margin-left: auto;
+		margin-right: auto;
+		height: 560px;
+		padding: 20px;
+		background: rgba(255, 255, 255, 0.8);
+		border-radius: 8px;
+	}
+	#message {}
+	.center {
+		display: block;
+		margin-left: auto;
+		margin-right: auto
+	}
+	.user {
+		color: #8ed300;
+	}
+	.light {
+		font-weight: 300;
+	}
+	</style>
+</head>
+<body width="100%" height="100%">
+	<div id="container">
+		<div id="content">
+			<img src="logo_nordev.png" class="center" />
+			<h1>Hello Norwich!</h1>
+			<div id="message">Waiting for sender...</div>
+		</div>
+	</div>
+    <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+    <script type="text/javascript">
+	  var senders = {};
+	  var greeting = -1;
+	  var greetings = ['Welcome', 'Hey there', 'Join the fun', 'Hello', 'Nice to see you', 'Howdy'];
+	  window.onload = function() {
+        cast.receiver.logger.setLevelValue(0);
+        window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
+        console.log('Starting Receiver Manager');
+        castReceiverManager.onReady = function(event) {
+          console.log('Received Ready event: ' + JSON.stringify(event.data));
+          window.castReceiverManager.setApplicationState("Application status is ready...");
+        };
+        castReceiverManager.onSenderConnected = function(event) {
+          console.log('Received Sender Connected event: ' + event.data);
+          console.log(window.castReceiverManager.getSender(event.data).userAgent);
+        };
+        castReceiverManager.onSenderDisconnected = function(event) {
+          console.log('Received Sender Disconnected event: ' + event.data);
+          if (window.castReceiverManager.getSenders().length == 0) {
+	        window.close();
+	      }
+        };
+        castReceiverManager.onSystemVolumeChanged = function(event) {
+          console.log('Received System Volume Changed event: ' + event.data['level'] + ' ' +
+              event.data['muted']);
+        };
+
+        window.messageBus =
+          window.castReceiverManager.getCastMessageBus(
+              'urn:x-cast:com.pixplicity.castdemo');
+
+        window.messageBus.onMessage = function(event) {
+		  json = JSON.parse(event.data);
+		  senderName = event.senderId;
+		  if (json.name) {
+			senderName = json.name;
+		  }
+		  if (!senders[event.senderId]) {
+			if (Object.keys(senders).length == 0) {
+			  document.getElementById("message").innerHTML='';
+			}
+			greeting++;
+			if (greeting >= greetings.length) greeting=0;
+			document.getElementById("message").innerHTML += greetings[greeting] + ', <span class="user">' + senderName + '</span>!<br />';
+		  }
+		  senders[event.senderId] = senderName;
+          console.log('Message [' + event.senderId + ']: ' + event.data);
+		  if (json.msg.length > 0) {
+			displayText('<span class="user light">' + senderName + ':</span> ' + json.msg);
+		  }
+          window.messageBus.send(event.senderId, event.data);
+        }
+
+        window.castReceiverManager.start({statusText: "Application is starting"});
+        console.log('Receiver Manager started');
+      };
+
+      function displayText(text) {
+        console.log(text);
+        document.getElementById("message").innerHTML += text + "<br />";
+        window.castReceiverManager.setApplicationState(text);
+      };
+    </script>
+</body>
+</html>
