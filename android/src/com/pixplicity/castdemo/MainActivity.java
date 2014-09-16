@@ -165,7 +165,6 @@ public class MainActivity extends ActionBarActivity {
                     .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (matches.size() > 0) {
                 String message = matches.get(0);
-                Log.d(TAG, message);
                 if (!sendMessage(message)) {
                     mEtMessage.setText(message);
                 }
@@ -258,6 +257,7 @@ public class MainActivity extends ActionBarActivity {
                     .addConnectionCallbacks(mConnectionCallbacks)
                     .addOnConnectionFailedListener(mConnectionFailedListener)
                     .build();
+            Log.d(TAG, "connecting...");
 
             mApiClient.connect();
         } catch (Exception e) {
@@ -276,8 +276,8 @@ public class MainActivity extends ActionBarActivity {
             Log.d(TAG, "onConnected");
 
             if (mApiClient == null) {
-                // We got disconnected while this runnable was pending
-                // execution.
+                // We got disconnected while this runnable was pending execution.
+                Log.d(TAG, "disconnected during onConnected");
                 return;
             }
 
@@ -390,7 +390,7 @@ public class MainActivity extends ActionBarActivity {
      * Disconnect from the receiver
      */
     private void disconnect() {
-        Log.d(TAG, "disconnecting");
+        Log.d(TAG, "disconnecting...");
         if (mApiClient != null) {
             if (mApplicationStarted) {
                 if (mApiClient.isConnected() || mApiClient.isConnecting()) {
@@ -453,6 +453,7 @@ public class MainActivity extends ActionBarActivity {
                     .show();
         } else {
             try {
+                Log.d(TAG, "sending: " + message);
                 Cast.CastApi.sendMessage(mApiClient,
                         mHelloWorldChannel.getNamespace(), json.toString())
                         .setResultCallback(new ResultCallback<Status>() {
