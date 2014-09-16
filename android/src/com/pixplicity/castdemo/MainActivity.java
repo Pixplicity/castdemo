@@ -77,6 +77,7 @@ public class MainActivity extends ActionBarActivity {
     private MediaRouteSelector mMediaRouteSelector;
     private MediaRouter.Callback mMediaRouterCallback;
 
+    private CastDevice mSelectedDevice;
     private GoogleApiClient mApiClient;
     private Cast.Listener mCastListener;
     private ConnectionCallbacks mConnectionCallbacks;
@@ -178,7 +179,7 @@ public class MainActivity extends ActionBarActivity {
         super.onResume();
         // Start media router discovery
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
+                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
     }
 
     @Override
@@ -217,9 +218,9 @@ public class MainActivity extends ActionBarActivity {
         public void onRouteSelected(MediaRouter router, RouteInfo info) {
             Log.d(TAG, "onRouteSelected");
             // Handle the user route selection.
-            CastDevice device = CastDevice.getFromBundle(info.getExtras());
+            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
             // Launch the receiver app
-            connect(device);
+            connect();
         }
 
         @Override
@@ -236,7 +237,7 @@ public class MainActivity extends ActionBarActivity {
      * @param device
      *            Device to launch onto
      */
-    private void connect(CastDevice device) {
+    private void connect() {
         try {
             mCastListener = new Cast.Listener() {
 
@@ -251,7 +252,7 @@ public class MainActivity extends ActionBarActivity {
             mConnectionCallbacks = new ConnectionCallbacks();
             mConnectionFailedListener = new ConnectionFailedListener();
             Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
-                    .builder(device, mCastListener);
+                    .builder(mSelectedDevice, mCastListener);
             mApiClient = new GoogleApiClient.Builder(this)
                     .addApi(Cast.API, apiOptionsBuilder.build())
                     .addConnectionCallbacks(mConnectionCallbacks)
@@ -392,7 +393,7 @@ public class MainActivity extends ActionBarActivity {
         Log.d(TAG, "disconnecting");
         if (mApiClient != null) {
             if (mApplicationStarted) {
-                if (mApiClient.isConnected()) {
+                if (mApiClient.isConnected() || mApiClient.isConnecting()) {
                     try {
                         if (mSingleUserMode) {
                             Cast.CastApi.stopApplication(mApiClient, mSessionId);
@@ -414,6 +415,7 @@ public class MainActivity extends ActionBarActivity {
             }
             mApiClient = null;
         }
+        mSelectedDevice = null;
         mWaitingForReconnect = false;
         mSessionId = null;
     }
