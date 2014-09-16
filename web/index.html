@@ -1,26 +1,62 @@
 <html>
 <head>
-	<link href='http://fonts.googleapis.com/css?family=Roboto:300,300italic,400,400italic,700,700italic|Roboto+Condensed|Roboto+Slab:400,700,300' rel='stylesheet' type='text/css' />
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width" />
+	<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto:300,300italic,400,400italic,700,700italic|Roboto+Condensed|Roboto+Slab:400,700,300" />
+	<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Cabin:400,500,600,700|Open+Sans:400,600,700,800">
 	<style>
 	body {
 		font-family: 'Roboto', sans-serif;
 		font-size: 14pt;
-		color: black;
-		background:url('background_norwich.jpg') black;
+		-webkit-font-smoothing: antialiased;
+		color: white;
+		background: url('droidcon-nyc/background.jpg') black;
+	}
+	h1.droidcon {
+		font-size: 52px;
+		font-weight: 700;
+		line-height: 100%;
+		text-transform: none;
+	}
+	.droidcon {
+		font-family: Cabin,"Helvetica Neue","HelveticaNeue",Helvetica,Arial,"Lucida Grande",sans-serif;
+		padding: 0;
+		margin: 0;
+	}
+	.droidcon-banner {
+		background: url('droidcon-nyc/nyc-train.svg') no-repeat;
+		background-position: right center;
+		background-size: 120px;
+		height: 100px;
+	}
+	.droidcon-green {
+		color: #a8de25;
+	}
+	.droidcon-dates {
+		margin: 0 0 0 5px;
+		color: #d3d3d3;
+		font-size: 22px;
+		line-height: 100%;
 	}
 	h1, h2 {
 		font-family: 'Roboto Slab', serif;
 		font-weight: 300;
+		font-size: 2em;
 	}
 	h3 {
 		font-family: 'Roboto Condensed', sans-serif;
 	}
-	#container{
+	#container {
 		position: absolute;
 		top: 50%;
 		margin-top: -300px;/* half of #content height*/
 		left: 0;
 		width: 100%;
+	}
+	#banner {
+		margin: -10px;
+		padding: 10px;
+		border-radius: 8px;
 	}
 	#content {
 		width: 760px;
@@ -28,7 +64,7 @@
 		margin-right: auto;
 		height: 560px;
 		padding: 20px;
-		background: rgba(255, 255, 255, 0.8);
+		background: rgba(21, 21, 21, 0.8);
 		border-radius: 8px;
 	}
 	#message {}
@@ -48,8 +84,11 @@
 <body width="100%" height="100%">
 	<div id="container">
 		<div id="content">
-			<img src="logo_nordev.png" class="center" />
-			<h1>Hello Norwich!</h1>
+			<div id="banner" class="droidcon-banner">
+				<h1 class="droidcon"><span class="droidcon-green">Droidcon</span> NYC</h1>
+				<p class="droidcon droidcon-dates">September 20th – 21st 2014</p>
+			</div>
+			<h2>Hello New York City!</h2>
 			<div id="message">Waiting for sender...</div>
 		</div>
 	</div>
