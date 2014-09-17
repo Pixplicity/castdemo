@@ -137,7 +137,7 @@
             android:paddingRight="8dp"
             android:paddingTop="4dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_send2" />
+            android:src="@drawable/ic_send" />
     </LinearLayout>
 
 </LinearLayout>
