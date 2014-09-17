@@ -72,19 +72,19 @@ public class MainActivity extends ActionBarActivity {
 
     private static final int REQUEST_SPEECH_RECOGNITION = 101;
 
-    private MediaRouter mMediaRouter;
-    private MediaRouteSelector mMediaRouteSelector;
-    private MediaRouter.Callback mMediaRouterCallback;
+    private static MediaRouter sMediaRouter;
+    private static MediaRouteSelector sMediaRouteSelector;
+    private static MediaRouter.Callback sMediaRouterCallback;
+    private static CastDevice sSelectedDevice;
 
-    private CastDevice mSelectedDevice;
     private GoogleApiClient mApiClient;
     private Cast.Listener mCastListener;
     private ConnectionCallbacks mConnectionCallbacks;
     private ConnectionFailedListener mConnectionFailedListener;
 
     private HelloWorldChannel mHelloWorldChannel;
-    private boolean mApplicationStarted;
     private boolean mWaitingForReconnect;
+    private boolean mApplicationStarted;
     private String mSessionId;
 
     private final boolean mSingleUserMode = false;
@@ -132,12 +132,15 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
+        // TODO migrate all connectivity logic into CastProxy
+        // sCastProxy = CastProxy.getInstance(getApplicationContext());
+
         // Configure Cast device discovery
-        mMediaRouter = MediaRouter.getInstance(getApplicationContext());
-        mMediaRouteSelector = new MediaRouteSelector.Builder()
+        sMediaRouter = MediaRouter.getInstance(getApplicationContext());
+        sMediaRouteSelector = new MediaRouteSelector.Builder()
                 .addControlCategory(CastMediaControlIntent.categoryForCast(getResources().getString(R.string.app_id)))
                 .build();
-        mMediaRouterCallback = new MyMediaRouterCallback();
+        sMediaRouterCallback = new MyMediaRouterCallback();
     }
 
     /**
@@ -173,26 +176,21 @@ public class MainActivity extends ActionBarActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    protected void onStart() {
+        super.onStart();
         // Start media router discovery
-        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
+        sMediaRouter.addCallback(sMediaRouteSelector, sMediaRouterCallback,
                 MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
-    }
-
-    @Override
-    protected void onPause() {
-        if (isFinishing()) {
-            // End media router discovery
-            mMediaRouter.removeCallback(mMediaRouterCallback);
+        if (sSelectedDevice != null) {
+            connect();
         }
-        super.onPause();
     }
 
     @Override
-    public void onDestroy() {
-        disconnect();
-        super.onDestroy();
+    protected void onStop() {
+        // End media router discovery
+        sMediaRouter.removeCallback(sMediaRouterCallback);
+        super.onStop();
     }
 
     @Override
@@ -203,7 +201,7 @@ public class MainActivity extends ActionBarActivity {
         MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider) MenuItemCompat
                 .getActionProvider(mediaRouteMenuItem);
         // Set the MediaRouteActionProvider selector for device discovery.
-        mediaRouteActionProvider.setRouteSelector(mMediaRouteSelector);
+        mediaRouteActionProvider.setRouteSelector(sMediaRouteSelector);
         return true;
     }
 
@@ -216,7 +214,7 @@ public class MainActivity extends ActionBarActivity {
         public void onRouteSelected(MediaRouter router, RouteInfo info) {
             Log.d(TAG, "onRouteSelected");
             // Handle the user route selection.
-            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
+            sSelectedDevice = CastDevice.getFromBundle(info.getExtras());
             // Launch the receiver app
             connect();
         }
@@ -250,8 +248,13 @@ public class MainActivity extends ActionBarActivity {
             mConnectionCallbacks = new ConnectionCallbacks();
             mConnectionFailedListener = new ConnectionFailedListener();
             Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
-                    .builder(mSelectedDevice, mCastListener);
-            mApiClient = new GoogleApiClient.Builder(this)
+                    .builder(sSelectedDevice, mCastListener);
+            if (mApiClient != null) {
+                // It's possible that we already had a connection; disconnect first to avoid a
+                // conflicted state
+                disconnect();
+            }
+            mApiClient = new GoogleApiClient.Builder(getApplicationContext())
                     .addApi(Cast.API, apiOptionsBuilder.build())
                     .addConnectionCallbacks(mConnectionCallbacks)
                     .addOnConnectionFailedListener(mConnectionFailedListener)
@@ -332,15 +335,18 @@ public class MainActivity extends ActionBarActivity {
                                 + ", wasLaunched: "
                                 + wasLaunched);
 
-                        mApplicationStarted = true;
-
                         // Create the custom message channel
                         mHelloWorldChannel = new HelloWorldChannel();
                         createMessageChannel();
 
-                        // set the initial instructions
-                        // on the receiver
-                        sendMessage(null);
+                        if (!mApplicationStarted) {
+                            // set the initial instructions
+                            // on the receiver
+                            sendMessage(null);
+                        }
+
+                        mApplicationStarted = true;
+
                     } else {
                         if (tryJoin
                                 && status.getStatusCode() == CastStatusCodes.APPLICATION_NOT_RUNNING) {
@@ -414,7 +420,7 @@ public class MainActivity extends ActionBarActivity {
             }
             mApiClient = null;
         }
-        mSelectedDevice = null;
+        sSelectedDevice = null;
         mWaitingForReconnect = false;
         mSessionId = null;
     }
