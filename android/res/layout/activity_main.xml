@@ -33,56 +33,61 @@
             android:src="@drawable/background"
             tools:ignore="ContentDescription" />
 
-        <RelativeLayout
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="#cd151515" >
 
             <LinearLayout
                 android:id="@+id/vg_logo"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:paddingBottom="4dp"
                 android:paddingLeft="16dp"
                 android:paddingRight="16dp"
                 android:paddingTop="4dp" >
 
                 <ImageView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="96dp"
+                    android:layout_gravity="right"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:maxWidth="96dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/im_droidcon_nyc2"
+                    tools:ignore="ContentDescription" />
+
+                <ImageView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_weight="4"
                     android:adjustViewBounds="true"
-                    android:maxHeight="40dp"
+                    android:maxWidth="200dp"
                     android:scaleType="fitStart"
-                    android:src="@drawable/im_droidcon_nyc" />
-
-                <ImageView
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="center"
-                    android:layout_marginLeft="48dp"
-                    android:layout_weight="1"
-                    android:adjustViewBounds="true"
-                    android:maxHeight="48dp"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/im_droidcon_nyc2" />
+                    android:src="@drawable/im_droidcon_nyc"
+                    tools:ignore="ContentDescription" />
             </LinearLayout>
 
             <FrameLayout
+                android:id="@+id/vg_controls"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_below="@+id/vg_logo"
-                android:layout_marginTop="-24dp" >
+                android:layout_marginTop="-24dp"
+                android:visibility="invisible" >
 
                 <Button
-                    android:id="@+id/voiceButton"
+                    android:id="@+id/voiceButton2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:background="@drawable/voice_button" />
             </FrameLayout>
-        </RelativeLayout>
+        </FrameLayout>
     </FrameLayout>
 
     <View
@@ -107,12 +112,30 @@
             android:paddingLeft="16dp" />
 
         <ImageButton
+            android:id="@+id/voiceButton"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/speak_message"
+            android:paddingBottom="4dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:paddingTop="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_speak" />
+
+        <ImageButton
             android:id="@+id/textButton"
             style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="wrap_content"
+            android:layout_width="64dp"
             android:layout_height="48dp"
             android:layout_gravity="center"
             android:contentDescription="@string/cast_message"
+            android:paddingBottom="4dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="4dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_send2" />
     </LinearLayout>

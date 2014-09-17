@@ -26,6 +26,7 @@
     <string name="media_route_menu_title">Play on&#8230;</string>
     <string name="connected">Hi there! Send me a message!</string>
     <string name="disconnected">Please connect to a Google Cast device.</string>
+    <string name="speak_message">Text to speech</string>
     <string name="cast_message">Cast message</string>
     <string name="failed_no_connection">You don\'t appear to be connected to a Cast device</string>
     <string name="failed_no_channel">Sorry, couldn\'t send your message (no channel)</string>

@@ -44,7 +44,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -101,7 +100,7 @@ public class MainActivity extends ActionBarActivity {
         actionBar.setBackgroundDrawable(new ColorDrawable(android.R.color.transparent));
 
         // When the user clicks on the button, use Android voice recognition to get text
-        Button voiceButton = (Button) findViewById(R.id.voiceButton);
+        ImageButton voiceButton = (ImageButton) findViewById(R.id.voiceButton);
         voiceButton.setOnClickListener(new OnClickListener() {
 
             @Override
