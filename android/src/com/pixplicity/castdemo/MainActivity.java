@@ -41,8 +41,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -69,8 +71,12 @@ public class MainActivity extends ActionBarActivity {
     private ImageButton mBtSend;
     private ImageButton mBtSpeak;
     private ListView mLvMessages;
+    private ViewGroup mVgLogo;
 
     private String mUsername;
+
+    private ArrayList<String> mMessageList = new ArrayList<String>();
+    private ArrayAdapter<String> mMessageAdapter;
 
     private final Handler mHandler = new Handler();
 
@@ -114,9 +120,18 @@ public class MainActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onMessageReceived(CastDevice castDevice, String namespace,
-                String message) {
+        public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
             Log.d(TAG, "onMessageReceived: " + message);
+            try {
+                JSONObject json = new JSONObject(message);
+                String name = json.getString("name");
+                String msg = json.getString("msg");
+                mMessageList.add(msg);
+                updateMessages();
+                mMessageAdapter.notifyDataSetChanged();
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         /**
@@ -129,6 +144,9 @@ public class MainActivity extends ActionBarActivity {
             JSONObject json = new JSONObject();
             try {
                 if (message != null) {
+                    if (message.length() == 0) {
+                        return false;
+                    }
                     json.put("code", 2);
                     json.put("msg", message);
                 } else {
@@ -213,6 +231,10 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
+        mLvMessages = (ListView) findViewById(R.id.lv_messages);
+
+        mVgLogo = (ViewGroup) findViewById(R.id.vg_logo);
+
         setConnected(false);
     }
 
@@ -227,6 +249,17 @@ public class MainActivity extends ActionBarActivity {
             imm.showSoftInput(mEtMessage, InputMethodManager.SHOW_IMPLICIT);
         }
 
+    }
+
+    private void updateMessages() {
+        if (mMessageList.size() > 0) {
+            mVgLogo.setVisibility(View.INVISIBLE);
+        }
+        if (mMessageAdapter == null) {
+            mMessageAdapter = new ArrayAdapter<String>(MainActivity.this,
+                    android.R.layout.simple_list_item_2, mMessageList);
+            mLvMessages.setAdapter(mMessageAdapter);
+        }
     }
 
     /**
@@ -265,6 +298,20 @@ public class MainActivity extends ActionBarActivity {
     protected void onStart() {
         super.onStart();
         CastProxy.registerInstance();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArrayList("messages", mMessageList);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        mLvMessages.setAdapter(null);
+        mMessageList = savedInstanceState.getStringArrayList("messages");
+        updateMessages();
     }
 
     @Override

@@ -93,8 +93,23 @@ public class CastProxy {
         setChannel(castChannel);
     }
 
+    /**
+     * Replaces any previous channel with a new one, updating callbacks as needed
+     * 
+     * @param castChannel
+     */
     private void setChannel(CastChannel castChannel) {
+        if (mChannel != null && mApiClient != null) {
+            try {
+                removeMessageChannel();
+            } catch (IOException e) {
+                throw new RuntimeException("Could not remove channel", e);
+            }
+        }
         mChannel = castChannel;
+        if (mApiClient != null) {
+            createMessageChannel();
+        }
     }
 
     /**
@@ -152,9 +167,7 @@ public class CastProxy {
                         } else {
                             Cast.CastApi.leaveApplication(mApiClient);
                         }
-                        Cast.CastApi.removeMessageReceivedCallbacks(
-                                mApiClient,
-                                mChannel.getNamespace());
+                        removeMessageChannel();
                     } catch (IOException e) {
                         Log.e(TAG, "Exception while removing channel", e);
                     }
@@ -263,22 +276,28 @@ public class CastProxy {
             });
         }
 
-        private void createMessageChannel() {
-            try {
-                Cast.CastApi.setMessageReceivedCallbacks(
-                        mApiClient,
-                        mChannel.getNamespace(),
-                        mChannel);
-            } catch (IOException e) {
-                Log.e(TAG, "Exception while creating channel", e);
-            }
-        }
-
         @Override
         public void onConnectionSuspended(int cause) {
             Log.d(TAG, "onConnectionSuspended");
             mWaitingForReconnect = true;
         }
+    }
+
+    private void createMessageChannel() {
+        try {
+            Cast.CastApi.setMessageReceivedCallbacks(
+                    mApiClient,
+                    mChannel.getNamespace(),
+                    mChannel);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create channel", e);
+        }
+    }
+
+    public void removeMessageChannel() throws IOException {
+        Cast.CastApi.removeMessageReceivedCallbacks(
+                mApiClient,
+                mChannel.getNamespace());
     }
 
     /**
