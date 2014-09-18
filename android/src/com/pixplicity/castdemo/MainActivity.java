@@ -25,6 +25,7 @@ import org.json.JSONObject;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
@@ -37,6 +38,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.MediaRouteActionProvider;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -44,7 +46,7 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -75,10 +77,24 @@ public class MainActivity extends ActionBarActivity {
 
     private String mUsername;
 
-    private ArrayList<String> mMessageList = new ArrayList<String>();
-    private ArrayAdapter<String> mMessageAdapter;
+    // private ArrayList<Message> mMessageList = new ArrayList<Message>();
+    private ArrayList<String> mMessageListMessages = new ArrayList<String>();
+    private ArrayList<String> mMessageListUsernames = new ArrayList<String>();
+    private BaseAdapter mMessageAdapter;
 
     private final Handler mHandler = new Handler();
+
+    public class Message {
+
+        public final String username;
+        public final String message;
+
+        public Message(String username, String message) {
+            this.username = username;
+            this.message = message;
+        }
+
+    }
 
     /**
      * Custom message channel
@@ -125,8 +141,9 @@ public class MainActivity extends ActionBarActivity {
             try {
                 JSONObject json = new JSONObject(message);
                 String name = json.getString("name");
+                mMessageListUsernames.add(name);
                 String msg = json.getString("msg");
-                mMessageList.add(msg);
+                mMessageListMessages.add(msg);
                 updateMessages();
                 mMessageAdapter.notifyDataSetChanged();
             } catch (JSONException e) {
@@ -252,12 +269,49 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void updateMessages() {
-        if (mMessageList.size() > 0) {
+        if (mMessageListMessages.size() > 0) {
             mVgLogo.setVisibility(View.INVISIBLE);
         }
         if (mMessageAdapter == null) {
-            mMessageAdapter = new ArrayAdapter<String>(MainActivity.this,
-                    android.R.layout.simple_list_item_2, mMessageList);
+            mMessageAdapter = new BaseAdapter() {
+
+                @SuppressLint("InflateParams")
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View row;
+                    if (convertView == null) {
+                        LayoutInflater inflater = (LayoutInflater) getApplicationContext().getSystemService(
+                                Context.LAYOUT_INFLATER_SERVICE);
+                        row = inflater.inflate(R.layout.list_messages, null);
+                    } else {
+                        row = convertView;
+                    }
+                    /* TODO
+                    Message msg = getItem(position);
+                    row.getText1().setText(msg.username);
+                    row.getText2().setText(msg.message);
+                    */
+                    ((TextView) row.findViewById(R.id.tv_username)).setText(mMessageListUsernames.get(position));
+                    ((TextView) row.findViewById(R.id.tv_message)).setText(mMessageListMessages.get(position));
+                    return row;
+                }
+
+                @Override
+                public int getCount() {
+                    return mMessageListMessages.size();
+                }
+
+                @Override
+                public Message getItem(int position) {
+                    // TODO return mMessageList.get(position);
+                    return null;
+                }
+
+                @Override
+                public long getItemId(int position) {
+                    return 0;
+                }
+            };
             mLvMessages.setAdapter(mMessageAdapter);
         }
     }
@@ -303,14 +357,16 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putStringArrayList("messages", mMessageList);
+        outState.putStringArrayList("usernames", mMessageListUsernames);
+        outState.putStringArrayList("messages", mMessageListMessages);
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         mLvMessages.setAdapter(null);
-        mMessageList = savedInstanceState.getStringArrayList("messages");
+        mMessageListUsernames = savedInstanceState.getStringArrayList("usernames");
+        mMessageListMessages = savedInstanceState.getStringArrayList("messages");
         updateMessages();
     }
 
