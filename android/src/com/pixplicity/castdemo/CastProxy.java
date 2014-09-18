@@ -2,16 +2,12 @@ package com.pixplicity.castdemo;
 
 import java.io.IOException;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.media.MediaRouteSelector;
 import android.support.v7.media.MediaRouter;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
@@ -43,7 +39,7 @@ public class CastProxy {
     private ConnectionCallbacks mConnectionCallbacks;
     private ConnectionFailedListener mConnectionFailedListener;
 
-    private final HelloWorldChannel mHelloWorldChannel;
+    private CastChannel mChannel;
     private boolean mWaitingForReconnect;
     private boolean mApplicationStarted;
     private String mSessionId;
@@ -52,105 +48,21 @@ public class CastProxy {
 
     private final Context mApplicationContext;
 
-    /**
-     * Callback for MediaRouter events
-     */
-    private class MyMediaRouterCallback extends MediaRouter.Callback {
+    public static interface CastChannel extends MessageReceivedCallback {
 
-        @Override
-        public void onRouteSelected(MediaRouter router, RouteInfo info) {
-            Log.d(TAG, "onRouteSelected");
-            // Handle the user route selection.
-            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
-            // Launch the receiver app
-            connect();
-        }
+        public String getNamespace();
 
-        @Override
-        public void onRouteUnselected(MediaRouter router, RouteInfo info) {
-            Log.d(TAG, "onRouteUnselected: info=" + info);
-            disconnect();
-        }
+        public void onConnected();
+
+        public void onReconnected();
+
+        public void onDisconnected();
+
+        public boolean sendMessage(String message);
 
     }
 
-    /**
-     * Custom message channel
-     */
-    public class HelloWorldChannel implements MessageReceivedCallback {
-
-        private String mUsername;
-
-        /**
-         * @return Custom namespace over which the channel is communicated
-         */
-        public String getNamespace() {
-            return mApplicationContext.getString(R.string.namespace);
-        }
-
-        public void onConnected() {
-            // Set the initial instructions on the receiver
-            sendMessage(null);
-        }
-
-        @Override
-        public void onMessageReceived(CastDevice castDevice, String namespace,
-                String message) {
-            Log.d(TAG, "onMessageReceived: " + message);
-        }
-
-        /**
-         * Send a text message to the receiver
-         * 
-         * @param message
-         */
-        public boolean sendMessage(String message) {
-            JSONObject json = new JSONObject();
-            try {
-                if (message != null) {
-                    json.put("code", 2);
-                    json.put("msg", message);
-                } else {
-                    json.put("code", 1);
-                }
-                json.put("name", mUsername);
-            } catch (JSONException e) {
-                throw new RuntimeException(e);
-            }
-            if (mApiClient == null) {
-                Toast.makeText(mApplicationContext, R.string.failed_no_connection, Toast.LENGTH_SHORT)
-                        .show();
-            } else {
-                try {
-                    Log.d(TAG, "sending: " + message);
-                    Cast.CastApi.sendMessage(mApiClient,
-                            mHelloWorldChannel.getNamespace(), json.toString())
-                            .setResultCallback(new ResultCallback<Status>() {
-
-                                @Override
-                                public void onResult(Status result) {
-                                    if (!result.isSuccess()) {
-                                        Log.e(TAG, "Sending message failed");
-                                    }
-                                }
-                            });
-                    return true;
-                } catch (Exception e) {
-                    Log.e(TAG, "Exception while sending message", e);
-                    Toast.makeText(mApplicationContext, R.string.failed_unknown, Toast.LENGTH_SHORT)
-                            .show();
-                }
-            }
-            return false;
-        }
-
-        public void setUsername(String username) {
-            mUsername = username;
-        }
-
-    }
-
-    public CastProxy(Context applicationContext) {
+    public CastProxy(Context applicationContext, CastChannel castChannel) {
         mApplicationContext = applicationContext;
         // Configure Cast device discovery
         mMediaRouter = MediaRouter.getInstance(applicationContext);
@@ -159,8 +71,30 @@ public class CastProxy {
                         CastMediaControlIntent.categoryForCast(
                                 applicationContext.getResources().getString(R.string.app_id)))
                 .build();
-        mMediaRouterCallback = new MyMediaRouterCallback();
-        mHelloWorldChannel = new HelloWorldChannel();
+        // Callback for MediaRouter events
+        mMediaRouterCallback = new MediaRouter.Callback() {
+
+            @Override
+            public void onRouteSelected(MediaRouter router, RouteInfo info) {
+                Log.d(TAG, "onRouteSelected");
+                // Handle the user route selection.
+                mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
+                // Launch the receiver app
+                connect();
+            }
+
+            @Override
+            public void onRouteUnselected(MediaRouter router, RouteInfo info) {
+                Log.d(TAG, "onRouteUnselected: info=" + info);
+                disconnect();
+            }
+
+        };
+        setChannel(castChannel);
+    }
+
+    private void setChannel(CastChannel castChannel) {
+        mChannel = castChannel;
     }
 
     /**
@@ -220,11 +154,12 @@ public class CastProxy {
                         }
                         Cast.CastApi.removeMessageReceivedCallbacks(
                                 mApiClient,
-                                mHelloWorldChannel.getNamespace());
+                                mChannel.getNamespace());
                     } catch (IOException e) {
                         Log.e(TAG, "Exception while removing channel", e);
                     }
                     mApiClient.disconnect();
+                    mChannel.onDisconnected();
                 }
                 mApplicationStarted = false;
             }
@@ -310,7 +245,7 @@ public class CastProxy {
 
                         if (!mApplicationStarted) {
                             // Allow the channel to perform connection events
-                            mHelloWorldChannel.onConnected();
+                            mChannel.onConnected();
                         }
 
                         mApplicationStarted = true;
@@ -332,8 +267,8 @@ public class CastProxy {
             try {
                 Cast.CastApi.setMessageReceivedCallbacks(
                         mApiClient,
-                        mHelloWorldChannel.getNamespace(),
-                        mHelloWorldChannel);
+                        mChannel.getNamespace(),
+                        mChannel);
             } catch (IOException e) {
                 Log.e(TAG, "Exception while creating channel", e);
             }
@@ -359,10 +294,11 @@ public class CastProxy {
         }
     }
 
-    public synchronized static CastProxy init(Context applicationContext) {
+    public synchronized static CastProxy init(Context applicationContext, CastChannel castChannel) {
         if (sInstance == null && applicationContext != null) {
-            sInstance = new CastProxy(applicationContext);
+            sInstance = new CastProxy(applicationContext, castChannel);
         }
+        sInstance.setChannel(castChannel);
         return sInstance;
     }
 
@@ -375,6 +311,9 @@ public class CastProxy {
                 if (sInstance.mSelectedDevice != null && sInstance.mApiClient == null) {
                     sInstance.connect();
                 }
+            } else if (sInstance.mSelectedDevice != null && sInstance.mApiClient != null) {
+                // Inform the channel that we've reconnected
+                sInstance.mChannel.onReconnected();
             }
             sInstanceCount++;
         }
@@ -403,17 +342,22 @@ public class CastProxy {
     }
 
     public static MediaRouteSelector getMediaRouteSelector() {
-        CastProxy instance = init(null);
-        if (instance != null) {
-            return instance.mMediaRouteSelector;
+        if (sInstance != null) {
+            return sInstance.mMediaRouteSelector;
         }
         return null;
     }
 
-    public static HelloWorldChannel getChannel() {
-        CastProxy instance = init(null);
-        if (instance != null) {
-            return instance.mHelloWorldChannel;
+    public static CastChannel getChannel() {
+        if (sInstance != null) {
+            return sInstance.mChannel;
+        }
+        return null;
+    }
+
+    public static GoogleApiClient getApiClient() {
+        if (sInstance != null) {
+            return sInstance.mApiClient;
         }
         return null;
     }

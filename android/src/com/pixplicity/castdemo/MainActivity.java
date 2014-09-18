@@ -20,8 +20,12 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -31,16 +35,26 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.MediaRouteActionProvider;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
+import android.widget.Toast;
+
+import com.google.android.gms.cast.Cast;
+import com.google.android.gms.cast.CastDevice;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 
 /**
  * Main activity to send messages to the receiver.
@@ -52,24 +66,131 @@ public class MainActivity extends ActionBarActivity {
     private static final int REQUEST_SPEECH_RECOGNITION = 101;
 
     private EditText mEtMessage;
+    private ImageButton mBtSend;
+    private ImageButton mBtSpeak;
+    private ListView mLvMessages;
 
     private String mUsername;
 
     private final Handler mHandler = new Handler();
+
+    /**
+     * Custom message channel
+     */
+    public class HelloWorldChannel implements CastProxy.CastChannel {
+
+        public final Context mApplicationContext;
+
+        public HelloWorldChannel(Context applicationContext) {
+            mApplicationContext = applicationContext;
+        }
+
+        /**
+         * @return Custom namespace over which the channel is communicated
+         */
+        @Override
+        public String getNamespace() {
+            return mApplicationContext.getString(R.string.namespace);
+        }
+
+        @Override
+        public void onConnected() {
+            Log.d(TAG, "onConnected");
+            // Set the initial instructions on the receiver
+            sendMessage(null);
+            setConnected(true);
+        }
+
+        @Override
+        public void onReconnected() {
+            Log.d(TAG, "onReconnected");
+            setConnected(true);
+        }
+
+        @Override
+        public void onDisconnected() {
+            Log.d(TAG, "onDisconnected");
+            setConnected(false);
+        }
+
+        @Override
+        public void onMessageReceived(CastDevice castDevice, String namespace,
+                String message) {
+            Log.d(TAG, "onMessageReceived: " + message);
+        }
+
+        /**
+         * Send a text message to the receiver
+         * 
+         * @param message
+         */
+        @Override
+        public boolean sendMessage(String message) {
+            JSONObject json = new JSONObject();
+            try {
+                if (message != null) {
+                    json.put("code", 2);
+                    json.put("msg", message);
+                } else {
+                    json.put("code", 1);
+                }
+                json.put("name", getUsername());
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+            GoogleApiClient apiClient = CastProxy.getApiClient();
+            if (apiClient == null) {
+                Toast.makeText(mApplicationContext, R.string.failed_no_connection, Toast.LENGTH_SHORT)
+                        .show();
+            } else {
+                try {
+                    Log.d(TAG, "sending: " + message);
+                    Cast.CastApi.sendMessage(apiClient,
+                            getNamespace(), json.toString())
+                            .setResultCallback(new ResultCallback<Status>() {
+
+                                @Override
+                                public void onResult(Status result) {
+                                    if (!result.isSuccess()) {
+                                        Log.e(TAG, "Sending message failed");
+                                    }
+                                }
+                            });
+                    return true;
+                } catch (Exception e) {
+                    Log.e(TAG, "Exception while sending message", e);
+                    Toast.makeText(mApplicationContext, R.string.failed_unknown, Toast.LENGTH_SHORT)
+                            .show();
+                }
+            }
+            return false;
+        }
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        CastProxy.init(getApplicationContext());
+        CastProxy.init(getApplicationContext(), new HelloWorldChannel(getApplicationContext()));
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setBackgroundDrawable(new ColorDrawable(android.R.color.transparent));
 
-        // When the user clicks on the button, use Android voice recognition to get text
-        ImageButton voiceButton = (ImageButton) findViewById(R.id.voiceButton);
-        voiceButton.setOnClickListener(new OnClickListener() {
+        // Sends the message over the channel
+        mBtSend = (ImageButton) findViewById(R.id.bt_send);
+        mBtSend.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                sendTextMessage(mEtMessage);
+            }
+        });
+
+        // When the user clicks on the "speak" button, use Android voice recognition to get text
+        mBtSpeak = (ImageButton) findViewById(R.id.bt_speak);
+        mBtSpeak.setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -78,14 +199,6 @@ public class MainActivity extends ActionBarActivity {
         });
 
         mEtMessage = (EditText) findViewById(R.id.et_message);
-        ImageButton textButton = (ImageButton) findViewById(R.id.textButton);
-        textButton.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                sendTextMessage(mEtMessage);
-            }
-        });
         mEtMessage.setOnEditorActionListener(new OnEditorActionListener() {
 
             @Override
@@ -100,21 +213,20 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
-        // Default username
-        AccountManager manager = AccountManager.get(this);
-        Account[] accounts = manager.getAccountsByType("com.google");
-        List<String> possibleEmails = new LinkedList<String>();
-        for (Account account : accounts) {
-            possibleEmails.add(account.name);
+        setConnected(false);
+    }
+
+    private void setConnected(boolean connected) {
+        mBtSend.setEnabled(connected);
+        mBtSpeak.setEnabled(connected);
+        mEtMessage.setEnabled(connected);
+        if (connected) {
+            mEtMessage.requestFocus();
+            // Implicity request a soft input mode
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.showSoftInput(mEtMessage, InputMethodManager.SHOW_IMPLICIT);
         }
-        if (!possibleEmails.isEmpty() && possibleEmails.get(0) != null) {
-            String email = possibleEmails.get(0);
-            String[] parts = email.split("@");
-            if (parts.length > 0 && parts[0] != null) {
-                mUsername = parts[0];
-            }
-        }
-        CastProxy.getChannel().setUsername(mUsername);
+
     }
 
     /**
@@ -184,6 +296,27 @@ public class MainActivity extends ActionBarActivity {
         if (CastProxy.getChannel().sendMessage(textField.getText().toString())) {
             textField.setText(null);
         }
+    }
+
+    public String getUsername() {
+        if (mUsername == null) {
+            mUsername = "anonymous";
+            // Default username
+            AccountManager manager = AccountManager.get(this);
+            Account[] accounts = manager.getAccountsByType("com.google");
+            List<String> possibleEmails = new LinkedList<String>();
+            for (Account account : accounts) {
+                possibleEmails.add(account.name);
+            }
+            if (!possibleEmails.isEmpty() && possibleEmails.get(0) != null) {
+                String email = possibleEmails.get(0);
+                String[] parts = email.split("@");
+                if (parts.length > 0 && parts[0] != null) {
+                    mUsername = parts[0];
+                }
+            }
+        }
+        return mUsername;
     }
 
 }

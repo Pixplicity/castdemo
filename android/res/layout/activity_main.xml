@@ -72,12 +72,15 @@
                     tools:ignore="ContentDescription" />
             </LinearLayout>
 
+            <ListView
+                android:id="@+id/lv_messages"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
             <FrameLayout
                 android:id="@+id/vg_controls"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@+id/vg_logo"
-                android:layout_marginTop="-24dp"
                 android:visibility="invisible" >
 
                 <Button
@@ -106,13 +109,14 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@null"
+            android:enabled="false"
             android:hint="@string/message_to_cast"
             android:imeOptions="actionSend"
             android:inputType="textCapSentences|textAutoCorrect|textAutoComplete"
             android:paddingLeft="16dp" />
 
         <ImageButton
-            android:id="@+id/voiceButton"
+            android:id="@+id/bt_speak"
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="48dp"
             android:layout_height="48dp"
@@ -126,7 +130,7 @@
             android:src="@drawable/ic_speak" />
 
         <ImageButton
-            android:id="@+id/textButton"
+            android:id="@+id/bt_send"
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="64dp"
             android:layout_height="48dp"

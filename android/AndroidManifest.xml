@@ -23,7 +23,7 @@
         <activity
             android:name="com.pixplicity.castdemo.MainActivity"
             android:label="@string/app_name"
-            android:windowSoftInputMode="adjustResize" >
+            android:windowSoftInputMode="stateHidden|adjustResize" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
