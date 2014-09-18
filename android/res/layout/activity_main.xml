@@ -112,7 +112,7 @@
             android:enabled="false"
             android:hint="@string/message_to_cast"
             android:imeOptions="actionSend"
-            android:inputType="textCapSentences|textAutoCorrect|textAutoComplete"
+            android:inputType="textCapSentences|textAutoCorrect|text"
             android:paddingLeft="16dp" />
 
         <ImageButton
