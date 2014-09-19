@@ -12,7 +12,6 @@ import android.util.Log;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
-import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.CastStatusCodes;
@@ -48,7 +47,7 @@ public class CastProxy {
 
     private final Context mApplicationContext;
 
-    public static interface CastChannel extends MessageReceivedCallback {
+    public static interface CastChannel extends Cast.MessageReceivedCallback {
 
         public String getNamespace();
 
