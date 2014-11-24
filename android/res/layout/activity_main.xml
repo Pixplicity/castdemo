@@ -57,7 +57,7 @@
                     android:adjustViewBounds="true"
                     android:maxWidth="96dp"
                     android:scaleType="centerInside"
-                    android:src="@drawable/im_droidcon_nyc2"
+                    android:src="@drawable/im_logo_right"
                     tools:ignore="ContentDescription" />
 
                 <ImageView
@@ -68,7 +68,7 @@
                     android:adjustViewBounds="true"
                     android:maxWidth="200dp"
                     android:scaleType="fitStart"
-                    android:src="@drawable/im_droidcon_nyc"
+                    android:src="@drawable/im_logo_left"
                     tools:ignore="ContentDescription" />
             </LinearLayout>
 
