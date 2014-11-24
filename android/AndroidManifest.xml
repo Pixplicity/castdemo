@@ -9,6 +9,7 @@
         android:targetSdkVersion="21" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- FIXME do we need GET_ACCOUNTS? -->
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
 
     <application
